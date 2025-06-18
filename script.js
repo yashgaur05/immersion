@@ -12,9 +12,11 @@ class ProductSearch {
         this.noResults = document.getElementById('noResults');
         this.errorContainer = document.getElementById('errorContainer');
         this.errorText = document.getElementById('errorText');
+        this.sortSelect = document.getElementById('sortSelect');
 
         this.apiBaseUrl = 'https://dummyjson.com/products/search';
         this.currentSearchTerm = '';
+        this.currentProducts = [];
 
         this.initializeEventListeners();
     }
@@ -28,6 +30,7 @@ class ProductSearch {
                 this.handleSearch(e);
             }
         });
+        this.sortSelect.addEventListener('change', () => this.handleSortChange());
     }
 
     validateSearchInput(searchTerm) {
@@ -73,6 +76,7 @@ class ProductSearch {
         this.productGrid.innerHTML = '';
         this.noResults.classList.add('hidden');
         this.errorContainer.classList.add('hidden');
+        this.sortSelect.value = 'relevance'; // Reset sort to relevance
     }
 
     async handleSearch(event) {
@@ -117,7 +121,8 @@ class ProductSearch {
             return;
         }
 
-        this.showResults(data.products, searchTerm, data.total);
+        this.currentProducts = data.products;
+        this.showResults(this.currentProducts, searchTerm, data.total);
     }
 
     showResults(products, searchTerm, total) {
@@ -125,12 +130,38 @@ class ProductSearch {
         this.resultsTitle.textContent = `Search Results for "${searchTerm}"`;
         this.resultsCount.textContent = `Found ${total} product${total !== 1 ? 's' : ''}`;
 
+        this.renderProducts(products);
+    }
+
+    renderProducts(products) {
         this.productGrid.innerHTML = '';
-        
+
         products.forEach(product => {
             const productCard = this.createProductCard(product);
             this.productGrid.appendChild(productCard);
         });
+    }
+
+    handleSortChange() {
+        if (this.currentProducts.length === 0) return;
+
+        const sortValue = this.sortSelect.value;
+        const sortedProducts = this.sortProducts([...this.currentProducts], sortValue);
+        this.renderProducts(sortedProducts);
+    }
+
+    sortProducts(products, sortType) {
+        switch (sortType) {
+            case 'price-low':
+                return products.sort((a, b) => a.price - b.price);
+            case 'price-high':
+                return products.sort((a, b) => b.price - a.price);
+            case 'rating':
+                return products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            case 'relevance':
+            default:
+                return products; // Keep original order for relevance
+        }
     }
 
     createProductCard(product) {
