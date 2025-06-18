@@ -19,11 +19,6 @@ class ProductSearch {
         this.currentProducts = [];
         this.usdToInrRate = 83.5; // Approximate USD to INR conversion rate
 
-        // Modal elements
-        this.productModal = document.getElementById('productModal');
-        this.modalOverlay = document.getElementById('modalOverlay');
-        this.modalClose = document.getElementById('modalClose');
-
         this.initializeEventListeners();
     }
 
@@ -37,15 +32,6 @@ class ProductSearch {
             }
         });
         this.sortSelect.addEventListener('change', () => this.handleSortChange());
-
-        // Modal event listeners
-        this.modalClose.addEventListener('click', () => this.closeModal());
-        this.modalOverlay.addEventListener('click', () => this.closeModal());
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && !this.productModal.classList.contains('hidden')) {
-                this.closeModal();
-            }
-        });
     }
 
     validateSearchInput(searchTerm) {
@@ -182,7 +168,6 @@ class ProductSearch {
     createProductCard(product) {
         const card = document.createElement('div');
         card.className = 'product-card';
-        card.style.cursor = 'pointer';
 
         const rating = product.rating || 0;
         const stars = this.generateStars(rating);
@@ -204,9 +189,6 @@ class ProductSearch {
                 <div class="product-price">${this.formatRupeePrice(product.price)}</div>
             </div>
         `;
-
-        // Add click event to open modal
-        card.addEventListener('click', () => this.openProductModal(product));
 
         return card;
     }
@@ -244,166 +226,6 @@ class ProductSearch {
             minimumFractionDigits: 0,
             maximumFractionDigits: 0
         }).format(rupeePrice);
-    }
-
-    openProductModal(product) {
-        this.populateModal(product);
-        this.productModal.classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // Prevent background scrolling
-    }
-
-    closeModal() {
-        this.productModal.classList.add('hidden');
-        document.body.style.overflow = ''; // Restore scrolling
-    }
-
-    populateModal(product) {
-        // Basic product information
-        document.getElementById('modalProductTitle').textContent = product.title;
-        document.getElementById('modalBrand').textContent = product.brand || 'Unknown Brand';
-        document.getElementById('modalCategory').textContent = product.category || 'Uncategorized';
-        document.getElementById('modalDescription').textContent = product.description || 'No description available';
-        document.getElementById('modalPrice').textContent = this.formatRupeePrice(product.price);
-
-        // Rating
-        const rating = product.rating || 0;
-        document.getElementById('modalRatingStars').innerHTML = this.generateStars(rating);
-        document.getElementById('modalRating').textContent = rating.toFixed(1);
-        document.getElementById('modalReviewCount').textContent = product.reviews?.length || 0;
-
-        // Stock and availability
-        document.getElementById('modalStock').textContent = `Stock: ${product.stock || 0} units`;
-        const availabilityElement = document.getElementById('modalAvailability');
-        const availability = product.availabilityStatus || 'Unknown';
-        availabilityElement.textContent = availability;
-        availabilityElement.className = `availability-status ${this.getAvailabilityClass(availability)}`;
-
-        // Discount
-        const discountElement = document.getElementById('modalDiscount');
-        if (product.discountPercentage && product.discountPercentage > 0) {
-            discountElement.textContent = `-${product.discountPercentage.toFixed(0)}%`;
-            discountElement.style.display = 'inline-block';
-        } else {
-            discountElement.style.display = 'none';
-        }
-
-        // Images
-        this.populateImages(product);
-
-        // Specifications
-        this.populateSpecifications(product);
-
-        // Reviews
-        this.populateReviews(product);
-    }
-
-    populateImages(product) {
-        const mainImage = document.getElementById('modalMainImage');
-        const thumbnailsContainer = document.getElementById('imageThumbnails');
-
-        const images = product.images || [product.thumbnail];
-        const validImages = images.filter(img => img && img.trim() !== '');
-
-        if (validImages.length === 0) {
-            validImages.push('https://via.placeholder.com/400x400?text=No+Image');
-        }
-
-        // Set main image
-        mainImage.src = validImages[0];
-        mainImage.alt = product.title;
-
-        // Clear and populate thumbnails
-        thumbnailsContainer.innerHTML = '';
-
-        if (validImages.length > 1) {
-            validImages.forEach((image, index) => {
-                const thumbnail = document.createElement('img');
-                thumbnail.src = image;
-                thumbnail.alt = `${product.title} - Image ${index + 1}`;
-                thumbnail.className = `thumbnail-image ${index === 0 ? 'active' : ''}`;
-                thumbnail.onerror = () => {
-                    thumbnail.src = 'https://via.placeholder.com/80x80?text=No+Image';
-                };
-
-                thumbnail.addEventListener('click', () => {
-                    mainImage.src = image;
-                    thumbnailsContainer.querySelectorAll('.thumbnail-image').forEach(t => t.classList.remove('active'));
-                    thumbnail.classList.add('active');
-                });
-
-                thumbnailsContainer.appendChild(thumbnail);
-            });
-        }
-    }
-
-    populateSpecifications(product) {
-        const specsContainer = document.getElementById('modalSpecifications');
-        specsContainer.innerHTML = '';
-
-        const specs = [
-            { label: 'SKU', value: product.sku },
-            { label: 'Weight', value: product.weight ? `${product.weight} kg` : null },
-            { label: 'Dimensions', value: product.dimensions ?
-                `${product.dimensions.width} × ${product.dimensions.height} × ${product.dimensions.depth} cm` : null },
-            { label: 'Warranty', value: product.warrantyInformation },
-            { label: 'Shipping', value: product.shippingInformation },
-            { label: 'Return Policy', value: product.returnPolicy },
-            { label: 'Minimum Order', value: product.minimumOrderQuantity ? `${product.minimumOrderQuantity} units` : null }
-        ];
-
-        specs.forEach(spec => {
-            if (spec.value && spec.value !== 'null' && spec.value !== 'undefined') {
-                const specItem = document.createElement('div');
-                specItem.className = 'spec-item';
-                specItem.innerHTML = `
-                    <span class="spec-label">${spec.label}:</span>
-                    <span class="spec-value">${this.escapeHtml(spec.value)}</span>
-                `;
-                specsContainer.appendChild(specItem);
-            }
-        });
-    }
-
-    populateReviews(product) {
-        const reviewsContainer = document.getElementById('modalReviews');
-        reviewsContainer.innerHTML = '';
-
-        if (!product.reviews || product.reviews.length === 0) {
-            reviewsContainer.innerHTML = '<p style="color: #666; text-align: center; padding: 20px;">No reviews available for this product.</p>';
-            return;
-        }
-
-        product.reviews.forEach(review => {
-            const reviewItem = document.createElement('div');
-            reviewItem.className = 'review-item';
-
-            const reviewDate = new Date(review.date).toLocaleDateString('en-IN', {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric'
-            });
-
-            reviewItem.innerHTML = `
-                <div class="review-header">
-                    <div class="reviewer-info">
-                        <div class="reviewer-name">${this.escapeHtml(review.reviewerName || 'Anonymous')}</div>
-                        <div class="review-date">${reviewDate}</div>
-                    </div>
-                    <div class="review-rating">${this.generateStars(review.rating || 0)}</div>
-                </div>
-                <div class="review-comment">"${this.escapeHtml(review.comment || 'No comment provided')}"</div>
-            `;
-
-            reviewsContainer.appendChild(reviewItem);
-        });
-    }
-
-    getAvailabilityClass(availability) {
-        const status = availability.toLowerCase();
-        if (status.includes('in stock')) return 'in-stock';
-        if (status.includes('low stock')) return 'low-stock';
-        if (status.includes('out of stock')) return 'out-of-stock';
-        return 'in-stock';
     }
 
     escapeHtml(text) {
