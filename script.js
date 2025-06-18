@@ -17,6 +17,7 @@ class ProductSearch {
         this.apiBaseUrl = 'https://dummyjson.com/products/search';
         this.currentSearchTerm = '';
         this.currentProducts = [];
+        this.usdToInrRate = 83.5; // Approximate USD to INR conversion rate
 
         this.initializeEventListeners();
     }
@@ -101,10 +102,10 @@ class ProductSearch {
     }
 
     async searchProducts(searchTerm) {
-        const url = `${this.apiBaseUrl}?q=${encodeURIComponent(searchTerm)}`;
-        
+        const url = `${this.apiBaseUrl}?q=${encodeURIComponent(searchTerm)}&limit=50`;
+
         const response = await fetch(url);
-        
+
         if (!response.ok) {
             throw new Error(`Failed to fetch products: ${response.status} ${response.statusText}`);
         }
@@ -153,9 +154,9 @@ class ProductSearch {
     sortProducts(products, sortType) {
         switch (sortType) {
             case 'price-low':
-                return products.sort((a, b) => a.price - b.price);
+                return products.sort((a, b) => this.convertToRupees(a.price) - this.convertToRupees(b.price));
             case 'price-high':
-                return products.sort((a, b) => b.price - a.price);
+                return products.sort((a, b) => this.convertToRupees(b.price) - this.convertToRupees(a.price));
             case 'rating':
                 return products.sort((a, b) => (b.rating || 0) - (a.rating || 0));
             case 'relevance':
@@ -185,7 +186,7 @@ class ProductSearch {
                     <span class="rating-text">(${rating.toFixed(1)})</span>
                 </div>
                 <p class="product-description">${this.escapeHtml(product.description || 'No description available')}</p>
-                <div class="product-price">$${product.price.toFixed(2)}</div>
+                <div class="product-price">${this.formatRupeePrice(product.price)}</div>
             </div>
         `;
 
@@ -211,6 +212,20 @@ class ProductSearch {
         this.hideLoading();
         this.errorText.textContent = errorMessage;
         this.errorContainer.classList.remove('hidden');
+    }
+
+    convertToRupees(usdPrice) {
+        return usdPrice * this.usdToInrRate;
+    }
+
+    formatRupeePrice(usdPrice) {
+        const rupeePrice = this.convertToRupees(usdPrice);
+        return new Intl.NumberFormat('en-IN', {
+            style: 'currency',
+            currency: 'INR',
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0
+        }).format(rupeePrice);
     }
 
     escapeHtml(text) {
